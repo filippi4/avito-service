@@ -1,33 +1,44 @@
-version: "3"
-services:
-    app:
-        build: ./docker/php/8.1
-        volumes:
-            - .:/var/www/html
-        tty: true
-        restart: unless-stopped
-        ports:
-            - '${APP_PORT:-80}:80'
-        container_name: avito-service-php
-        networks:
-            - avito-service-network
-        depends_on:
-            - redis
-    redis:
-        image: 'redis:alpine'
-        volumes:
-            - 'avito-service-redis:/data'
-        restart: unless-stopped
-        container_name: avito-service-redis
-        networks:
-            - avito-service-network
-        healthcheck:
-            test: [ "CMD", "redis-cli", "ping" ]
-            retries: 3
-            timeout: 5s
-networks:
-    avito-service-network:
-        driver: bridge
-volumes:
-    avito-service-redis:
-        driver: local
+#version: "3"
+#services:
+#    app:
+#        build: ./docker/php/8.1
+#        volumes:
+#            - .:/var/www/html
+#        tty: true
+#        restart: unless-stopped
+##        ports:
+##            - '${APP_PORT:-80}:80'
+#        container_name: avito-service-php
+#        networks:
+#            - avito-service-network
+#        depends_on:
+##            - selenium
+#            - redis
+#    redis:
+#        image: 'redis:alpine'
+#        volumes:
+#            - 'avito-service-redis:/data'
+#        restart: unless-stopped
+#        container_name: avito-service-redis
+#        networks:
+#            - avito-service-network
+#        healthcheck:
+#            test: [ "CMD", "redis-cli", "ping" ]
+#            retries: 3
+#            timeout: 5s
+##    selenium:
+##        image: selenium/standalone-chrome
+##        container_name: avito-service-selenium
+##        restart: unless-stopped
+##        volumes:
+##            - '/dev/shm:/dev/shm'
+##        networks:
+##            - avito-service-network
+##        ports:
+##            - '5555:4444'
+#networks:
+#    avito-service-network:
+#        driver: bridge
+#volumes:
+#    avito-service-redis:
+#        driver: local
