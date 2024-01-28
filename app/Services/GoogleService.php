@@ -3,40 +3,65 @@
 namespace App\Services;
 
 use App\Services\Google\GoogleSheets;
-use Throwable;
 
 class GoogleService
 {
+    public const PF_AUTOLEADER_ACCRUALS_SPREADSHEET = 'АЛ - Реализации и Возвраты';
+    public const PF_AUTOPILOT_ACCRUALS_SPREADSHEET = 'АП - Реализации и Возвраты';
+    public const PF_AUTOPILOT_ACCRUALS_TAB = 'АП';
+    public const PF_AUTOLEADER_ACCRUALS_TAB = 'АЛ';
+
     private GoogleSheets $googleSheets;
+    private FtpService $ftpService;
 
-    private const PF_ACCRUALS_SPREADSHEET = 'АП - Реализации и Возвраты';
-    private const PF_ACCRUALS_TAB = 'АП';
-
-    public function __construct(GoogleSheets $googleSheets)
+    public function __construct(GoogleSheets $googleSheets, FtpService $ftpService)
     {
         $this->googleSheets = $googleSheets;
+        $this->ftpService = $ftpService;
     }
 
-    public function getPfAccruals()
+    public function read(string $spreadsheet, string $tab)
     {
-        return $this->googleSheets->read(self::PF_ACCRUALS_SPREADSHEET, self::PF_ACCRUALS_TAB)['result'];
+        return $this->googleSheets->read($spreadsheet, $tab)['result'];
     }
 
-    public function updatePfAccruals(array $values): bool
+    public function update(string $spreadsheet, string $tab, array $values, string $cellsRange = 'A1:Z'): bool
     {
-        $oldValues = $this->googleSheets->read(self::PF_ACCRUALS_SPREADSHEET, self::PF_ACCRUALS_TAB)['result'];
-        try {
-            $this->googleSheets->clear(self::PF_ACCRUALS_SPREADSHEET, self::PF_ACCRUALS_TAB);
-            $result = $this->googleSheets->update(self::PF_ACCRUALS_SPREADSHEET, self::PF_ACCRUALS_TAB, $values)['result'];
-            dump($result);
-            return $result['updated_rows'] === count($values);
-        } catch (Throwable $th) {
-            $result = $this->googleSheets->update(self::PF_ACCRUALS_SPREADSHEET, self::PF_ACCRUALS_TAB, $oldValues)['result'];
-            if ($result['updated_rows'] === count($values)) {
-                return false;
-            } else {
-                throw $th;
-            }
+        $this->googleSheets->clear($spreadsheet, $tab, $cellsRange);
+        $result = $this->googleSheets->update($spreadsheet, $tab, $values, $cellsRange)['result'];
+        return $result['updated_rows'] === count($values);
+    }
+
+    public function processUpdatePfAccrualsFromExcel()
+    {
+        $excelDataDict = $this->ftpService->getPfAccruals();
+        if (empty($excelDataDict)) {
+            return;
         }
+
+        $googleSheetsData = $this->read(
+            GoogleService::PF_AUTOLEADER_ACCRUALS_SPREADSHEET,
+            GoogleService::PF_AUTOLEADER_ACCRUALS_TAB
+        );
+
+        // если кол-во строк в файле google sheet равно кол-ву строк в файлах ftp,
+        // значит новых данных нет, и обновлять файл google sheet не нужно
+        if (count($excelDataDict) === count($googleSheetsData) - 1) {
+            return;
+        }
+
+        // update data
+        foreach ($excelDataDict as &$row) {
+            $row[8] = 'Нет';
+        }
+        $googleSheetsDataDict = collect($googleSheetsData)->slice(1)->keyBy(7)->toArray();
+        $allData = array_merge($excelDataDict, $googleSheetsDataDict);
+
+        $values = [$googleSheetsData[0], ...array_values($allData)];
+        $this->update(
+            GoogleService::PF_AUTOLEADER_ACCRUALS_SPREADSHEET,
+            GoogleService::PF_AUTOLEADER_ACCRUALS_TAB,
+            $values
+        );
     }
 }

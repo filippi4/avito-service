@@ -49,9 +49,11 @@ class Test extends Command
      */
     public function handle(): int
     {
-//        dd(app()->make(GoogleService::class)->getPfAccruals());
-//        app()->make(PfService::class)->updateAccrualsFromGoogleSheets();
-//        dd(array_flip((new GoogleSheets)->read('АП - Реализации и Возвраты', 'АП')['result'][0]));
+//        dd(app()->make(PfService::class)->processUpdateAutopilotAccrualsFromGoogleSheets());
+//        dd(app()->make(PfService::class)->processUpdateAutoleaderAccrualsFromGoogleSheets());
+//        dd(app()->make(GoogleService::class)->processUpdatePfAccrualsFromExcel());
+//        dd(app()->make(FtpService::class)->getAccruals());
+//        dd((new GoogleSheets)->read('АЛ - Реализации и Возвраты', 'АП')['result']);
 
         // Возврат:    Списание -> Зачисление => Баланс Автопилот -> Отгружено в OZON
         // Реализация: Списание -> Зачисление => Отгружено в OZON -> Баланс Автопилот

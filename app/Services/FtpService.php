@@ -45,4 +45,22 @@ class FtpService
             }
         }
     }
+
+    public function getPfAccruals(): array
+    {
+        $diskName = 'ftp-google-sheets-accruals';
+        $pattern = '/^Реестр общий Автолидер.*\.xlsx$/';
+        $tabIndex = 0;
+        $dataDict = [];
+        foreach (Storage::disk($diskName)->allFiles() as $filePath) {
+            if (Str::of($filePath)->isMatch($pattern)) {
+                $excelData = Excel::toArray(new \stdClass(), $filePath, $diskName)[$tabIndex];
+                $rows = array_merge($dataDict, array_slice($excelData, 1));
+                foreach ($rows as $row) {
+                    $dataDict[$row[7]] = $row;
+                }
+            }
+        }
+        return $dataDict;
+    }
 }

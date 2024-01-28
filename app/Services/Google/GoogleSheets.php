@@ -117,10 +117,10 @@ class GoogleSheets extends GoogleClient
      * @throws GoogleServiceException
      * @throws GoogleWorksheetException
      */
-    public function update(string $spreadsheetName, string $tabName, array $values): array
+    public function update(string $spreadsheetName, string $tabName, array $values, string $cellsRange = 'A1:Z'): array
     {
         $worksheet = $this->validateSheet($spreadsheetName, $tabName);
-        $range = "{$tabName}!A1:Z";
+        $range = "{$tabName}!{$cellsRange}";
         $body = new \Google_Service_Sheets_ValueRange([
             'values' => $values
         ]);
@@ -149,10 +149,10 @@ class GoogleSheets extends GoogleClient
         ];
     }
 
-    public function clear(string $spreadsheetName, string $tabName): array
+    public function clear(string $spreadsheetName, string $tabName, string $cellsRange = 'A1:Z'): array
     {
         $worksheet = $this->validateSheet($spreadsheetName, $tabName);
-        $range = "{$tabName}!A1:Z";
+        $range = "{$tabName}!{$cellsRange}";
         $body = new \Google_Service_Sheets_ClearValuesRequest();
         $result = $this->service->spreadsheets_values->clear($this->spreadsheet->getSpreadsheetId(),
             $range,

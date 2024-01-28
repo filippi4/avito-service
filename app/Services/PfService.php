@@ -13,12 +13,16 @@ class PfService
 {
     private const IP_KORSHUNOV_A_V_COMPANY_ID = 130544;
     private const BALANCE_AUTOPILOT_OPERATION_CATEGORY_ID = 6919203;
+    private const BALANCE_AUTOLEADER_OPERATION_CATEGORY_ID = 6817880;
     private const METHODS = ['Ozon', 'Wildberies', 'Yandex Market', 'Мессенджеры', 'Через корзину', 'По телефону'];
-    private GoogleService $googleService;
 
-    public function __construct(GoogleService $googleService)
+    private GoogleService $googleService;
+    private FtpService $ftpService;
+
+    public function __construct(GoogleService $googleService, FtpService $ftpService)
     {
         $this->googleService = $googleService;
+        $this->ftpService = $ftpService;
     }
 
     public function processCheckingOperations()
@@ -56,11 +60,16 @@ class PfService
         return $response['isSuccess'];
     }
 
-    public function updateAccrualsFromGoogleSheets()
+    public function processUpdateAutopilotAccrualsFromGoogleSheets()
     {
-        $data = $this->googleService->getPfAccruals();
-        $rows = array_slice($data, 1);
+        $data = $this->googleService->read(
+            GoogleService::PF_AUTOPILOT_ACCRUALS_SPREADSHEET,
+            GoogleService::PF_AUTOPILOT_ACCRUALS_TAB,
+        );
 
+        $notUpdatedRowsIncrementChecker = 0;
+
+        $rows = array_slice($data, 1);
         foreach ($rows as $index => &$row) {
             $sum = $row[4];
 
@@ -68,16 +77,28 @@ class PfService
                 continue;
             }
 
+            // test
+//            if ($index > 10) {
+//                continue;
+//            }
+
             if ($row[8] === 'Нет') {
+                $notUpdatedRowsIncrementChecker++;
+
                 $method = $row[6];
 
-                // пропускает неизвеные 'способы'
+                // пропускает неизвестные 'способы'
                 if (!in_array($method, self::METHODS)) {
+                    $notUpdatedRowsIncrementChecker--;
                     continue;
                 }
 
                 $documentType = $row[1];
-                [$income, $outcome] = $this->getIncomeAndOutcomeOperationCategoryId($documentType, $method);
+                [$income, $outcome] = $this->getIncomeAndOutcomeOperationCategoryId(
+                    $documentType,
+                    $method,
+                    self::BALANCE_AUTOPILOT_OPERATION_CATEGORY_ID
+                );
                 $contrangentName = $this->getContragentNameByMethod($method);
                 $accrual = [
                     'calculationDate' => Carbon::parse($row[3])->format('Y-m-d'),
@@ -91,15 +112,105 @@ class PfService
                     'contrAgentId' => $this->getContragentIdByName($contrangentName),
                     'currencyCode' => 'RUB',
                 ];
+//                dump($accrual);
                 $isUpdated = $this->sendAccrualOperation($accrual);
+//                dump($isUpdated);
                 if ($isUpdated) {
                     $row[8] = 'Да';
+                } else {
+                    $notUpdatedRowsIncrementChecker--;
                 }
             }
         }
 
-        $values = [$data[0], ...$rows];
-        $this->googleService->updatePfAccruals($values);
+        if ($notUpdatedRowsIncrementChecker === 0) {
+            return;
+        }
+
+        $values = array_map(fn ($item) => [$item], array_column($rows, 8));
+        $this->googleService->update(
+            GoogleService::PF_AUTOPILOT_ACCRUALS_SPREADSHEET,
+            GoogleService::PF_AUTOPILOT_ACCRUALS_TAB,
+            $values,
+            'I2:I'
+        );
+    }
+
+    public function processUpdateAutoleaderAccrualsFromGoogleSheets()
+    {
+        $googleSheetsData = $this->googleService->read(
+            GoogleService::PF_AUTOLEADER_ACCRUALS_SPREADSHEET,
+            GoogleService::PF_AUTOLEADER_ACCRUALS_TAB
+        );
+
+        // Увеличивает счетчик не загруженных строк до отправки в пф,
+        // если не отправится счетчик уменьшится.
+        // Если в итоге равен 0, значит кол-во не загрежнных данных не поенялось,
+        // следовательно обновлять google файл не нужно.
+        $notUpdatedRowsIncrementChecker = 0;
+
+        $rows = array_slice($googleSheetsData, 1);
+        foreach ($rows as $index => &$row) {
+            // test
+//            if ($index > 70) {
+//                continue;
+//            }
+
+            if ($row[8] === 'Нет') {
+                $notUpdatedRowsIncrementChecker++;
+
+                $sum = $row[4];
+                $method = $this->getMethodByExcelMethod($row[6]);
+                $documentType = $row[1];
+                [$income, $outcome] = $this->getIncomeAndOutcomeOperationCategoryId(
+                    $documentType,
+                    $method,
+                    self::BALANCE_AUTOLEADER_OPERATION_CATEGORY_ID
+                );
+                $contrangentName = $this->getContragentNameByMethod($method);
+                $accrual = [
+                    'calculationDate' => Carbon::parse($row[3])->format('Y-m-d'),
+                    'isCalculationCommitted' => true,
+                    'companyId' => self::IP_KORSHUNOV_A_V_COMPANY_ID,
+                    'outcomeOperationCategoryId' => $income,
+                    'incomeOperationCategoryId' => $outcome,
+                    'incomeProjectId' => $this->getProjectIdByMethod($method),
+                    'comment' => "{$documentType} {$row[3]} {$row[2]} {$contrangentName}",
+                    'value' => $sum,
+                    'contrAgentId' => $this->getContragentIdByName($contrangentName),
+                    'currencyCode' => 'RUB',
+                ];
+//                dump($accrual);
+                $isUpdated = $this->sendAccrualOperation($accrual);
+//                dump($isUpdated);
+                if ($isUpdated) {
+                    $row[8] = 'Да';
+                } else {
+                    $notUpdatedRowsIncrementChecker--;
+                }
+            }
+        }
+
+        if ($notUpdatedRowsIncrementChecker === 0) {
+            return;
+        }
+
+        $values = [$googleSheetsData[0], ...$rows];
+        $this->googleService->update(
+            GoogleService::PF_AUTOLEADER_ACCRUALS_SPREADSHEET,
+            GoogleService::PF_AUTOLEADER_ACCRUALS_TAB,
+            $values
+        );
+    }
+
+    private function getMethodByExcelMethod(string $excelMethod)
+    {
+        return match($excelMethod) {
+            'ИП Коршунов - Oz' => 'Ozon',
+            'ИП Коршунов - ВБ' => 'Wildberies',
+            'ИП Коршунов - ЯМ' => 'Yandex Market',
+            'Коршунов Алексей Валерьевич ИП, опт !' => 'Мессенджеры', // или 'Через корзину', 'По телефону'
+        };
     }
 
     public function getOperationCategoryIdByMethod(string $method)
@@ -112,13 +223,17 @@ class PfService
         };
     }
 
-    public function getIncomeAndOutcomeOperationCategoryId(string $documentType, string $method)
+    public function getIncomeAndOutcomeOperationCategoryId(
+        string $documentType,
+        string $method,
+        string $balanceOperationCategoryId,
+    )
     {
         if ($documentType === 'Возврат') {
-            return [self::BALANCE_AUTOPILOT_OPERATION_CATEGORY_ID, $this->getOperationCategoryIdByMethod($method)];
+            return [$balanceOperationCategoryId, $this->getOperationCategoryIdByMethod($method)];
         } else {
             // Реализация
-            return [$this->getOperationCategoryIdByMethod($method), self::BALANCE_AUTOPILOT_OPERATION_CATEGORY_ID];
+            return [$this->getOperationCategoryIdByMethod($method), $balanceOperationCategoryId];
         }
     }
 

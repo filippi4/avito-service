@@ -62,6 +62,13 @@ return [
             'username' => env('FTP_USERNAME'),
             'password' => env('FTP_PASSWORD'),
         ],
+
+        'ftp-google-sheets-accruals' => [
+            'driver' => 'ftp',
+            'host' => env('FTP_GS_ACCRUALS_HOST'),
+            'username' => env('FTP_GS_ACCRUALS_USERNAME'),
+            'password' => env('FTP_GS_ACCRUALS_PASSWORD'),
+        ],
     ],
 
     /*
