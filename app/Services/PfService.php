@@ -82,7 +82,7 @@ class PfService
 //                continue;
 //            }
 
-            if ($row[8] === 'Нет') {
+            if ($row[9] === 'Нет') {
                 $notUpdatedRowsIncrementChecker++;
 
                 $method = $row[6];
@@ -116,7 +116,7 @@ class PfService
                 $isUpdated = $this->sendAccrualOperation($accrual);
 //                dump($isUpdated);
                 if ($isUpdated) {
-                    $row[8] = 'Да';
+                    $row[9] = 'Да';
                 } else {
                     $notUpdatedRowsIncrementChecker--;
                 }
@@ -127,12 +127,12 @@ class PfService
             return;
         }
 
-        $values = array_map(fn ($item) => [$item], array_column($rows, 8));
+        $values = array_map(fn ($item) => [$item], array_column($rows, 9));
         $this->googleService->update(
             GoogleService::PF_AUTOPILOT_ACCRUALS_SPREADSHEET,
             GoogleService::PF_AUTOPILOT_ACCRUALS_TAB,
             $values,
-            'I2:I'
+            'J2:J'
         );
     }
 
@@ -269,21 +269,23 @@ class PfService
 
     private function sendAccrualOperation(array $accrual): bool
     {
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'X-ApiKey' => config('api.planfact.key'),
-        ])->post("https://api.planfact.io/api/v1/operations/accrual", [
-            'calculationDate' => $accrual['calculationDate'],
-            'isCalculationCommitted' => $accrual['isCalculationCommitted'],
-            'companyId' => $accrual['companyId'],
-            'outcomeOperationCategoryId' => $accrual['outcomeOperationCategoryId'],
-            'incomeOperationCategoryId' => $accrual['incomeOperationCategoryId'],
-            'incomeProjectId' => $accrual['incomeProjectId'],
-            'comment' => $accrual['comment'],
-            'value' => $accrual['value'],
-            'contrAgentId' => $accrual['contrAgentId'],
-            'currencyCode' => $accrual['currencyCode'],
-        ])->json();
+        $response = Http::timeout(30)
+            ->retry(5, 3000)
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+                'X-ApiKey' => config('api.planfact.key'),
+            ])->post("https://api.planfact.io/api/v1/operations/accrual", [
+                'calculationDate' => $accrual['calculationDate'],
+                'isCalculationCommitted' => $accrual['isCalculationCommitted'],
+                'companyId' => $accrual['companyId'],
+                'outcomeOperationCategoryId' => $accrual['outcomeOperationCategoryId'],
+                'incomeOperationCategoryId' => $accrual['incomeOperationCategoryId'],
+                'incomeProjectId' => $accrual['incomeProjectId'],
+                'comment' => $accrual['comment'],
+                'value' => $accrual['value'],
+                'contrAgentId' => $accrual['contrAgentId'],
+                'currencyCode' => $accrual['currencyCode'],
+            ])->json();
 
         if (!$response['isSuccess']) {
             Log::debug(__METHOD__, $response);
