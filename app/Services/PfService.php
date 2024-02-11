@@ -71,7 +71,7 @@ class PfService
 
         $rows = array_slice($data, 1);
         foreach ($rows as $index => &$row) {
-            $sum = $row[4];
+            $sum = $row[4] ?? 0;
 
             if ($sum <= 0) {
                 continue;
@@ -82,7 +82,7 @@ class PfService
 //                continue;
 //            }
 
-            if ($row[9] === 'Нет') {
+            if ($row[9] ?? '' === 'Нет') {
                 $notUpdatedRowsIncrementChecker++;
 
                 $method = $row[6];
@@ -112,9 +112,9 @@ class PfService
                     'contrAgentId' => $this->getContragentIdByName($contrangentName),
                     'currencyCode' => 'RUB',
                 ];
-//                dump($accrual);
                 $isUpdated = $this->sendAccrualOperation($accrual);
-//                dump($isUpdated);
+                // debug
+//                dump('"' . $accrual['comment'] . '" is updated: ' . ($isUpdated ? 'yes' : 'no'));
                 if ($isUpdated) {
                     $row[9] = 'Да';
                 } else {
