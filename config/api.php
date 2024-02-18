@@ -6,5 +6,8 @@ return [
     ],
     'wildberries' => [
         'promotion' => env('WB_PROMOTION_KEY')
+    ],
+    'retailcrm' => [
+        'key' => env('RETAILCRM_KEY')
     ]
 ];

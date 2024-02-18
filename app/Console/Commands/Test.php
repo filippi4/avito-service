@@ -19,6 +19,7 @@ use App\Services\FtpService;
 use App\Services\Google\GoogleSheets;
 use App\Services\GoogleService;
 use App\Services\PfService;
+use App\Services\RetailCRMService;
 use App\Services\WbService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
@@ -49,6 +50,8 @@ class Test extends Command
      */
     public function handle(): int
     {
+//        dd(app()->make(GoogleService::class)->precessUpdateAutopilotOrdersFromRetailCRM());
+//        dd(app()->make(RetailCRMService::class)->getOrdersNumAndMethodAndDateAndDocumentType('2023-01-01', ['sklad-ap']));
 //        dd(app()->make(PfService::class)->processUpdateAutopilotAccrualsFromGoogleSheets());
 //        dd(app()->make(PfService::class)->processUpdateAutoleaderAccrualsFromGoogleSheets());
 //        dd(app()->make(GoogleService::class)->processUpdatePfAccrualsFromExcel());

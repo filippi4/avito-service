@@ -3,6 +3,7 @@
 namespace App\Console;
 
 use App\Jobs\GoogleSheetsAutoleaderAccrualsUpdaterFromExcel;
+use App\Jobs\GoogleSheetsAutopilotOrdersUpdaterFromRetailCRM;
 use App\Jobs\PfAutopilotAccrualsUpdaterFromGoogleSheets;
 use App\Jobs\PfAutoleaderAccrualsUpdaterFromGoogleSheets;
 use App\Jobs\WbExcludedUpdater;
@@ -20,6 +21,7 @@ class Kernel extends ConsoleKernel
     {
         $schedule->job(new WbExcludedUpdater)->everyThirtyMinutes();
 
+        $schedule->job(new GoogleSheetsAutopilotOrdersUpdaterFromRetailCRM)->dailyAt('06:10');
         $schedule->job(new PfAutopilotAccrualsUpdaterFromGoogleSheets)->dailyAt('06:20');
         $schedule->command('pf:update-autoleader-accruals')->dailyAt('06:30');
     }
