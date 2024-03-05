@@ -160,7 +160,7 @@ class PfService
                 $notUpdatedRowsIncrementChecker++;
 
                 $sum = $row[4];
-                $method = $this->getMethodByExcelMethod($row[6]);
+                $method = FtpService::getGoogleMethodByExcelContractor($row[6]);
                 $documentType = $row[1];
                 [$income, $outcome] = $this->getIncomeAndOutcomeOperationCategoryId(
                     $documentType,
@@ -203,7 +203,7 @@ class PfService
         );
     }
 
-    private function getMethodByExcelMethod(string $excelMethod)
+    private function getMethodByExcelContractor(string $excelMethod)
     {
         return match($excelMethod) {
             'ИП Коршунов - Oz' => 'Ozon',

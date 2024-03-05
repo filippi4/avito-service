@@ -63,4 +63,34 @@ class FtpService
         }
         return $dataDict;
     }
+
+    public function getAutoleaderReturnsDataDict(): array
+    {
+        $diskName = 'ftp-google-sheets-accruals';
+        $pattern = '/^Реестр возвратов по товарам Автолидер.*\.xlsx$/';
+        $tabIndex = 0;
+        $fileNameIndex = 10;
+        $dict = [];
+        foreach (Storage::disk($diskName)->allFiles() as $filePath) {
+            if (Str::of($filePath)->isMatch($pattern)) {
+                $excelData = Excel::toArray(new \stdClass(), $filePath, $diskName)[$tabIndex];
+
+                $rows = array_slice($excelData, 1);
+                foreach ($rows as $row) {
+                    $dict[$row[$fileNameIndex]] = $row;
+                }
+            }
+        }
+        return $dict;
+    }
+
+    public static function getGoogleMethodByExcelContractor(string $contractor): string
+    {
+        return match($contractor) {
+            'ИП Коршунов - Oz' => 'Ozon',
+            'ИП Коршунов - ВБ' => 'Wildberies',
+            'ИП Коршунов - ЯМ' => 'Yandex Market',
+            'Коршунов Алексей Валерьевич ИП, опт !' => 'Мессенджеры', // или 'Через корзину', 'По телефону'
+        };
+    }
 }
