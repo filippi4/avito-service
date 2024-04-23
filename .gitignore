@@ -6,6 +6,7 @@
 /storage/*.key
 /vendor
 .env
+.env.testing
 .env.backup
 .env.production
 .phpunit.result.cache
@@ -16,6 +17,7 @@ composer.lock
 npm-debug.log
 yarn-error.log
 service-credentials.json
+.my.service-credentials.json
 /.fleet
 /.idea
 /.vscode

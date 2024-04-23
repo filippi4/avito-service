@@ -2,9 +2,13 @@
 
 namespace App\Services;
 
-use Carbon\Carbon;
+use App\Exports\OzonOrdersCostExport;
+use App\Exports\WbOrdersCostExport;
+use App\Exports\YandexMarketOrdersCostExport;
+use Google\Service\SQLAdmin\ExportContextSqlExportOptions;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
 
 class RetailCRMService
 {
@@ -70,8 +74,6 @@ class RetailCRMService
             if ($currentPage > $totalPageCount || empty($orders)) {
                 break;
             }
-
-            dump("page {$currentPage}/{$totalPageCount}");
 
             $data = array_merge($data, $orders);
 
@@ -176,5 +178,137 @@ class RetailCRMService
             Log::debug(__METHOD__, $response);
         }
         return $response;
+    }
+
+    public function exportOrdersCostToExcel(array $ordersCostPaths): void
+    {
+        $from = now()->subDays(30)->toDateString();
+        $orders = $this->getAllOrders($from);
+
+        $wbExcelData = $this->prepareWbExcelData($orders);
+        if (!empty($wbExcelData)) {
+            $this->createWbOrdersExcel($wbExcelData, $ordersCostPaths['wb']);
+        }
+
+        $ozonExcelData = $this->prepareOzonExcelData($orders);
+        if (!empty($wbExcelData)) {
+            $this->createOzonOrdersExcel($ozonExcelData, $ordersCostPaths['ozon']);
+        }
+
+        $yandexMarketExcelData = $this->prepareYandexMarketExcelData($orders);
+        if (!empty($wbExcelData)) {
+            $this->createYandexMarketOrdersExcel($yandexMarketExcelData, $ordersCostPaths['ym']);
+        }
+    }
+
+    public function prepareWbExcelData(array $orders): array
+    {
+        $preparedData = [];
+        foreach ($orders as $order) {
+            if ($order['orderMethod'] !== 'wildberies' ||
+                empty($order['customFields']['wb_srid']) ||
+                empty($order['customFields']['artikul_postavshchika_wb']) ||
+                empty($order['customFields']['price_zakup'])
+            ) {
+                continue;
+            }
+
+            $cost = $order['customFields']['price_zakup']
+                + ($order['customFields']['zabor_so_sklada1'] ?? 0)
+                + ($order['customFields']['stoimostupakovki'] ?? 0)
+                + ($order['customFields']['stoimostetiketki'] ?? 0)
+                + ($order['customFields']['ad_dropshiping_price'] ?? 0);
+
+            $preparedData[] = [
+                $order['customFields']['wb_srid'],
+                $order['customFields']['artikul_postavshchika_wb'],
+                $cost,
+            ];
+        }
+
+        return $preparedData;
+    }
+
+    public function prepareOzonExcelData(array $orders): array
+    {
+        $preparedData = [];
+        foreach ($orders as $order) {
+            if ($order['orderMethod'] !== 'ozon' ||
+                empty($order['externalId']) ||
+                empty($order['customFields']['price_zakup']) ||
+                empty($order['items'])
+            ) {
+                continue;
+            }
+
+            $cost = $order['customFields']['price_zakup']
+                + ($order['customFields']['zabor_so_sklada1'] ?? 0)
+                + ($order['customFields']['stoimostupakovki'] ?? 0)
+                + ($order['customFields']['stoimostetiketki'] ?? 0)
+                + ($order['customFields']['ad_dropshiping_price'] ?? 0);
+
+            foreach ($order['items'] as $item) {
+                if (empty($item['offer']['article'])) {
+                    continue;
+                }
+
+                $preparedData[] = [
+                    $order['externalId'],
+                    $item['offer']['article'],
+                    $cost,
+                ];
+            }
+        }
+
+        return $preparedData;
+    }
+
+    public function prepareYandexMarketExcelData(array $orders): array
+    {
+        $preparedData = [];
+        foreach ($orders as $order) {
+            if ($order['orderMethod'] !== 'yandexmarket' ||
+                empty($order['customer']['phones'][0]['number']) ||
+                empty($order['customFields']['price_zakup']) ||
+                empty($order['items'])
+            ) {
+                continue;
+            }
+
+            $cost = $order['customFields']['price_zakup']
+                + ($order['customFields']['zabor_so_sklada1'] ?? 0)
+                + ($order['customFields']['stoimostupakovki'] ?? 0)
+                + ($order['customFields']['stoimostetiketki'] ?? 0)
+                + ($order['customFields']['ad_dropshiping_price'] ?? 0);
+
+            foreach ($order['items'] as $item) {
+                if (empty($item['offer']['article'])) {
+                    continue;
+                }
+
+                $preparedData[] = [
+                    $order['customer']['phones'][0]['number'],
+                    $item['offer']['article'],
+                    $cost,
+                ];
+            }
+        }
+
+        return $preparedData;
+    }
+
+    private function createWbOrdersExcel(array $wbExcelData, string $path)
+    {
+        Excel::store(new WbOrdersCostExport($wbExcelData), $path);
+    }
+
+    private function createOzonOrdersExcel(array $ozonExcelData, string $path)
+    {
+        Excel::store(new OzonOrdersCostExport($ozonExcelData), $path);
+    }
+
+    private function createYandexMarketOrdersExcel(array $yandexMarketExcelData, string $path)
+    {
+        Excel::store(new YandexMarketOrdersCostExport($yandexMarketExcelData), $path);
     }
 }

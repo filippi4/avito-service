@@ -6,8 +6,8 @@ services:
             - .:/var/www/html
         tty: true
         restart: unless-stopped
-#        ports:
-#            - '${APP_PORT:-80}:80'
+        ports:
+            - '${APP_PORT-88}:80'
         container_name: avito-service-php
         networks:
             - avito-service-network

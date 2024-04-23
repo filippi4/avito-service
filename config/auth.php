@@ -112,4 +112,6 @@ return [
 
     'password_timeout' => 10800,
 
+    'request_auth_key' => env('REQUEST_AUTH_KEY')
+
 ];

@@ -2,6 +2,7 @@
 
 namespace App\Console;
 
+use App\Jobs\ExportOrdersCostToExcelJob;
 use App\Jobs\GoogleSheetsAutoleaderAccrualsUpdaterFromExcel;
 use App\Jobs\GoogleSheetsAutopilotOrdersUpdaterFromRetailCRM;
 use App\Jobs\PfAutopilotAccrualsUpdaterFromGoogleSheets;
@@ -20,6 +21,8 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->job(new WbExcludedUpdater)->everyThirtyMinutes();
+
+        $schedule->command('retailcrm:export-orders-cost-to-excel')->hourly();
 
         $schedule->job(new GoogleSheetsAutopilotOrdersUpdaterFromRetailCRM)->dailyAt('06:10');
         $schedule->job(new PfAutopilotAccrualsUpdaterFromGoogleSheets)->dailyAt('06:20');
