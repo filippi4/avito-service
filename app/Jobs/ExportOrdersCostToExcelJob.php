@@ -27,6 +27,6 @@ class ExportOrdersCostToExcelJob implements ShouldQueue
      */
     public function handle(RetailCRMService $retailCRMService): void
     {
-        $retailCRMService->exportOrdersCostToExcel(ExportService::ORDERS_COST_FILES);
+        $retailCRMService->exportOrdersCostToExcel(ExportService::getOrderCostPaths());
     }
 }
