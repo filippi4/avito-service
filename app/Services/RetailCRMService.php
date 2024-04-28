@@ -268,7 +268,7 @@ class RetailCRMService
         $preparedData = [];
         foreach ($orders as $order) {
             if ($order['orderMethod'] !== 'yandexmarket' ||
-                (empty($order['externalId']) && empty($order['customer']['phones'][0]['number'])) ||
+                empty($order['phone']) ||
                 empty($order['customFields']['price_zakup']) ||
                 empty($order['items'])
             ) {
@@ -281,16 +281,13 @@ class RetailCRMService
                 + ($order['customFields']['stoimostetiketki'] ?? 0)
                 + ($order['customFields']['ad_dropshiping_price'] ?? 0);
 
-            $orderNumber = !empty($order['externalId'])
-                ? $order['externalId'] : $order['customer']['phones'][0]['number'];
-
             foreach ($order['items'] as $item) {
                 if (empty($item['offer']['article'])) {
                     continue;
                 }
 
                 $preparedData[] = [
-                    $orderNumber,
+                    $order['phone'],
                     $item['offer']['article'],
                     $cost,
                 ];
