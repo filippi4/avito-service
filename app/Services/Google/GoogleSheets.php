@@ -117,7 +117,7 @@ class GoogleSheets extends GoogleClient
      * @throws GoogleServiceException
      * @throws GoogleWorksheetException
      */
-    public function update(string $spreadsheetName, string $tabName, array $values, string $cellsRange = 'A1:Z'): array
+    public function update(string $spreadsheetName, string $tabName, array $values, string $cellsRange = 'A1:Z', bool $hasFormulas = false): array
     {
         $worksheet = $this->validateSheet($spreadsheetName, $tabName);
         $range = "{$tabName}!{$cellsRange}";
@@ -125,7 +125,7 @@ class GoogleSheets extends GoogleClient
             'values' => $values
         ]);
         $params = [
-            'valueInputOption' => 'RAW'
+            'valueInputOption' => $hasFormulas ? 'USER_ENTERED' : 'RAW'
         ];
         $result = $this->service->spreadsheets_values->update($this->spreadsheet->getSpreadsheetId(),
             $range,

@@ -82,7 +82,7 @@ class PfService
 //                continue;
 //            }
 
-            if ($row[9] ?? '' === 'Нет') {
+            if (($row[9] ?? '') === 'Нет') {
                 $notUpdatedRowsIncrementChecker++;
 
                 $method = $row[6];
@@ -114,7 +114,7 @@ class PfService
                 ];
                 $isUpdated = $this->sendAccrualOperation($accrual);
                 // debug
-//                dump('"' . $accrual['comment'] . '" is updated: ' . ($isUpdated ? 'yes' : 'no'));
+                dump('"' . $accrual['comment'] . '" is updated: ' . ($isUpdated ? 'yes' : 'no'));
                 if ($isUpdated) {
                     $row[9] = 'Да';
                 } else {

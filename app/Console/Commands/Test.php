@@ -25,6 +25,9 @@ class Test extends Command
      */
     public function handle(): int
     {
+        app('App\Services\PfService')->processUpdateAutopilotAccrualsFromGoogleSheets();
+        app('App\Services\GoogleService')->precessUpdateAutopilotOrdersFromRetailCRM();
+
         return self::SUCCESS;
     }
 }

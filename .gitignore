@@ -17,7 +17,7 @@ composer.lock
 npm-debug.log
 yarn-error.log
 service-credentials.json
-.my.service-credentials.json
+test-service-credentials.json
 /.fleet
 /.idea
 /.vscode

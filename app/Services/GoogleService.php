@@ -30,10 +30,10 @@ class GoogleService
         return $this->googleSheets->read($spreadsheet, $tab)['result'];
     }
 
-    public function update(string $spreadsheet, string $tab, array $values, string $cellsRange = 'A1:Z'): bool
+    public function update(string $spreadsheet, string $tab, array $values, string $cellsRange = 'A1:Z', bool $hasFormulas = false): bool
     {
         $this->googleSheets->clear($spreadsheet, $tab, $cellsRange);
-        $result = $this->googleSheets->update($spreadsheet, $tab, $values, $cellsRange)['result'];
+        $result = $this->googleSheets->update($spreadsheet, $tab, $values, $cellsRange, $hasFormulas)['result'];
         return $result['updated_rows'] === count($values);
     }
 
@@ -205,7 +205,7 @@ class GoogleService
         foreach ($allData as &$row) {
             $row[0] = get_first_digits_or_origin_string($row[0]);
         }
-        // формирования словаря данных с ключем - номер заказа
+        // формирования словаря данных с ключом - номер заказа
         // новые данные из retailcrm в конце массива, данные для одинаковых ключей перезаписываются.
         $allData = collect($allData)->keyBy(0)->values()->toArray();
 
@@ -224,11 +224,17 @@ class GoogleService
             return $secondDate <=> $firstDate;
         });
 
+        // проставление значений =VALUE(AN)
+        foreach ($allData as $index => &$row) {
+            $row[4] = '=VALUE(A' . ($index + 2) . ')';
+        }
+
         $values = [$googleSheetsData[0], ...$allData];
         $this->update(
             GoogleService::PF_AUTOPILOT_ACCRUALS_SPREADSHEET,
             GoogleService::PF_AUTOPILOT_ORDERS_TAB,
-            $values
+            $values,
+            hasFormulas: true,
         );
     }
 

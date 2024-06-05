@@ -24,6 +24,10 @@ class Kernel extends ConsoleKernel
 
         $schedule->command('retailcrm:export-orders-cost-to-excel')->hourly();
 
+        $schedule->call(function () {
+            app('App\Services\FileService')->downloadFile('https://chekhly.ru/upload/IMTID.csv');
+        })->dailyAt('00:05');
+
         $schedule->job(new GoogleSheetsAutopilotOrdersUpdaterFromRetailCRM)->dailyAt('06:10');
         $schedule->job(new PfAutopilotAccrualsUpdaterFromGoogleSheets)->dailyAt('06:20');
         $schedule->command('pf:update-autoleader-accruals')->dailyAt('06:30');
